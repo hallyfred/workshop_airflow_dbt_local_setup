@@ -6,6 +6,7 @@ import random
 import os
 import time
 import pandas as pd
+from pathlib import Path
 
 # Configurações iniciais
 start_time = time.time()
@@ -13,10 +14,11 @@ fake = Faker('pt_BR')
 random.seed(42)
 np.random.seed(42)
 
-# Caminhos
-SEEDS_PATH = './seeds/'
-os.makedirs(SEEDS_PATH, exist_ok=True)
-DB_PATH = os.path.join(SEEDS_PATH, 'data.duckdb')
+# Caminhos: exporta os CSVs diretamente para as seeds do projeto dbt.
+PROJECT_ROOT = Path(__file__).resolve().parent
+SEEDS_PATH = PROJECT_ROOT.parent / '2_data_warehouse' / 'jornada_dw' / 'seeds'
+SEEDS_PATH.mkdir(parents=True, exist_ok=True)
+DB_PATH = SEEDS_PATH / 'data.duckdb'
 
 # Conectar ao DuckDB (cria o banco se não existir)
 con = duckdb.connect(DB_PATH)
@@ -211,7 +213,7 @@ def inserir_em_lote(tabela, df):
 
 def exportar_para_csv():
     """Exporta as tabelas para arquivos CSV."""
-    con.execute(f"EXPORT DATABASE '{SEEDS_PATH}' (FORMAT CSV)")
+    con.execute(f"EXPORT DATABASE '{SEEDS_PATH.as_posix()}' (FORMAT CSV)")
 
 def main():
     print("Iniciando geração de dados com DuckDB...")
@@ -270,14 +272,14 @@ def main():
         con.close()
         
         # Remover arquivo temporário do DuckDB
-        if os.path.exists(DB_PATH):
-            os.remove(DB_PATH)
+        if DB_PATH.exists():
+            DB_PATH.unlink()
         
         # Remover arquivos temporários (load.sql e schema.sql da pasta seeds)
-        if os.path.exists(SEEDS_PATH + 'load.sql'):
-            os.remove(SEEDS_PATH + 'load.sql')
-        if os.path.exists(SEEDS_PATH + 'schema.sql'):
-            os.remove(SEEDS_PATH + 'schema.sql')
+        for temporary_file in ('load.sql', 'schema.sql'):
+            temporary_path = SEEDS_PATH / temporary_file
+            if temporary_path.exists():
+                temporary_path.unlink()
     
     elapsed_time = time.time() - start_time
     print(f"\nTempo total de execução: {elapsed_time:.2f} segundos")
