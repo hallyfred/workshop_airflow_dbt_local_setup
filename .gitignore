@@ -5,3 +5,4 @@ __pycache__/
 build/
 wheels/
 *.egg-info/
+.log
